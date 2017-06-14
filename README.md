@@ -65,8 +65,23 @@ For each changed file
 * Finally, the cached copy of the .archive file is updated.
 
 This approach has the side effect that the it could take some hours for the script to complete the first time you run the script in your installation.
-However, in subsequent times, as long as the data folder that contains the cached copies of the script is valid, the script should complete in a couple of minutes.
+However, subsequently, as long as the data folder that contains the cached copies of the script is valid, the script should complete in a couple of minutes.
 So, it is suggested that you run the script manually the few few times and then add a cron job once the data folder has stabilized.
+
+### Auto pause
+In many facilities, there are IOC's that come and go at a rapid pace. 
+This has an impact on the archiver in that within a short amount of time there are lot of disconnected PVs in the archiver. 
+Having a lot of disconnected PVs in the archiver has some impact on the entire control system as a whole, so it is desirable to pause those PV's that have not connected for a while. 
+The script `pauseDisconnectedPVs.py` takes a timeout (in minutes) as an argument and pauses those PV's that have not connected for the specified timeout. 
+
+### Auto resume
+But the IOC's can come back; so the previous script would have paused PV's that may now be active.
+The script `resumePausedPVs.py` undoes the work of the previous script.
+It gets a list of paused PVs from the archiver and then resumes that are now live.
+
+Thus, you can use a combination of the auto resume and auto pause script to maintain a reasonably clean system.
+In addition to the benefits to ths control system, this should also make monitoring of the archiver significantly easier.
+
 
 
 
