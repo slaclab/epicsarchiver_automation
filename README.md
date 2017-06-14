@@ -1,5 +1,5 @@
 # epicsarchiver_automation
-A set of scripts that can be used to automate maintenance of an EPICS Archiver Appliance.
+A set of python scripts that can be used to automate maintenance of an EPICS Archiver Appliance.
 
 ### Background
 The EPICS Archiver Appliance is an archiver for EPICS control systems that seeks to archive millions of PVs.
@@ -12,6 +12,68 @@ In addition, there are few other scripts to
 
 
 Most of these scripts are expected to run as cron jobs periodically on machines that have access to the PV's in the control system (perhaps using a EPICS_CA_ADDR_LIST different from the archiver).
+
+### Dependencies
+We've made minimal assumptions on what's available in the Python environment.
+The main requirement is [ PyEpics ](http://cars9.uchicago.edu/software/python/pyepics/). 
+Not included in this package is the script code that sets up the EPICS enviroment and perhaps activates the Python environment.
+
+### Automated PV submission
+The automated PV submission script `processArchiveFiles.py` assumes that the IOC engineer communicates list of PV's using `.archive` files. 
+These are gathered into a common folder into a reasonably simple hierarchy. 
+For example, in all our facilities, we have a top level folder called `IOC_DATA`.
+Every IOC has its own subfolder in `IOC_DATA`.
+In addition to storing various IOC related lists like autosave files, lists of PV's in `IOC.pvlist` files etc., the deployment process also places the archive request file in `IOC_DATA`/`iocName`/archive/`iocName`.archive. For example, 
+```
+IOCData
+       /ioc-hpl-beckhoff
+                        /autosave
+                        /archive
+                                /ioc-hpl-beckhoff.archive
+       /ioc-sxr-las1
+                        /autosave
+                        /archive
+                                /ioc-sxr-las1.archive
+```
+Each archive file is a space/tab separated text file with a archiver config for a PV per line. 
+* Blank lines are permitted; comments are lines beginning with the `#` character.
+* The name of the PV is the first column in the tab/space separated file. 
+* The second column is the sampling period (in seconds).
+* The third column is the samping method (one of scan/monitor).
+* The sampling period and sampling method are optional; in which case, defaults specified as arguments to the processArchiveFiles.py script are applied.
+
+For example, here are a few lines from one if the archive files.
+
+```
+# Archive these values only when they change
+
+R32:IOC:01:STARTTOD 30 monitor
+R32:IOC:01:SYSRESET 30 monitor 
+R32:IOC:01:SUSP_TASK_CNT 30 monitor 
+R32:IOC:01:APP_DIR1 30 monitor 
+R32:IOC:01:APP_DIR2 30 monitor 
+```
+
+The `processArchiveFiles.py` takes as an argument the path of the `IOCData` folder and a glob expression to match archive files in the IOCData folder. 
+It uses these two to determine the applicable IOC archive files. 
+It keeps a copy of these files in the specified data folder. 
+Each time it run, it compares the current .archive file with the previous version and only considers files that have changed.
+For each changed file
+* It parses the file to determine the list of PVs and their configuration information.
+* It then uses CA to determine the connectivity of these PVs and only considers those than can be connected to.
+* It then determines those PVs that are unarchived and submits them to the archiver using a batch process.
+* Finally, the cached copy of the .archive file is updated.
+
+This approach has the side effect that the it could take some hours for the script to complete the first time you run the script in your installation.
+However, in subsequent times, as long as the data folder that contains the cached copies of the script is valid, the script should complete in a couple of minutes.
+So, it is suggested that you run the script manually the few few times and then add a cron job once the data folder has stabilized.
+
+
+
+
+
+
+
 
 
 
