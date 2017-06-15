@@ -66,7 +66,7 @@ For each changed file
 
 This approach has the side effect that the it could take some hours for the script to complete the first time you run the script in your installation.
 However, subsequently, as long as the data folder that contains the cached copies of the script is valid, the script should complete in a couple of minutes.
-So, it is suggested that you run the script manually the few few times and then add a cron job once the data folder has stabilized.
+So, it is suggested that you run the script manually the first few times and then add a cron job once the data folder has stabilized.
 
 ### Auto pause
 In many facilities, there are IOC's that come and go at a rapid pace. 
