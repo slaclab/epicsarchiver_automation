@@ -48,8 +48,8 @@ For example, here are a few lines from one if the archive files.
 # Archive these values only when they change
 
 R32:IOC:01:STARTTOD 30 monitor
-R32:IOC:01:SYSRESET 30 monitor 
-R32:IOC:01:SUSP_TASK_CNT 30 monitor 
+R32:IOC:01:SYSRESET 15 scan
+R32:IOC:01:SUSP_TASK_CNT 86400
 R32:IOC:01:APP_DIR1 30 monitor 
 R32:IOC:01:APP_DIR2 30 monitor 
 ```
