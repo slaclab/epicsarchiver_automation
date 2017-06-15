@@ -11,7 +11,7 @@ In addition, there are few other scripts to
 - Automatically pause PV's that have not connected for more than a certain amount of time.
 
 
-Most of these scripts are expected to run as cron jobs periodically on machines that have access to the PV's in the control system (perhaps using a EPICS_CA_ADDR_LIST different from the archiver).
+Most of these scripts are expected to run as cron jobs periodically on machines that have access to the PV's in the control system (ideally using an EPICS_CA_ADDR_LIST that is different from the archiver).
 
 ### Dependencies
 We've made minimal assumptions on what's available in the Python environment.
