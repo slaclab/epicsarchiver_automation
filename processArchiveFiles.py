@@ -86,7 +86,8 @@ def checkForLivenessAndSubmitToArchiver(args, expandedNames, batchedPVConfig):
     logger.debug("Checking for liveness of %s PVs", len(batchedPVConfig.keys()))
     unarchivedLivePvs = multiplePVCheck.checkMultiplePVs(batchedPVConfig.keys(), float(args.timeout))
     if unarchivedLivePvs:
-        logger.debug("Submitting %s new PVs to the archiver", len(unarchivedLivePvs))
+        logger.info("Submitting %s new PVs to the archiver", len(unarchivedLivePvs))
+        logger.debug("Submitting these PVs to the archiver %s", ",".join(unarchivedLivePvs))
         unarchivedPVsConfig = [ batchedPVConfig[x] for x in unarchivedLivePvs ]
         archivePVs(url, unarchivedPVsConfig)
         expandedNames.update(unarchivedLivePvs)
