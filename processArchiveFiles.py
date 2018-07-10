@@ -54,8 +54,9 @@ def findChangedFiles(rootFolder, ignoreolder):
         fname = fname.decode("utf-8")
         absoluteFName = os.path.join(rootFolder, fname)
         if abs((now - datetime.datetime.fromtimestamp(os.path.getmtime(absoluteFName))).total_seconds()) > ignoreolder*86400:
-            logger.info("Ignoring file %s older than %s days", absoluteFName, ignoreolder)
+            logger.debug("Ignoring file %s older than %s days", absoluteFName, ignoreolder)
         else:
+            logger.info("Adding file %s that has been modified in less than %s days", absoluteFName, ignoreolder)
             changedfiles.append(fname)
 
     return changedfiles
@@ -69,7 +70,7 @@ def checkForLivenessAndSubmitToArchiver(args, expandedNames, batchedPVConfig):
     unarchivedLivePvs = multiplePVCheck.checkMultiplePVs(batchedPVConfig.keys(), float(args.timeout))
     if unarchivedLivePvs:
         logger.info("Submitting %s new PVs to the archiver", len(unarchivedLivePvs))
-        logger.debug("Submitting these PVs to the archiver %s", ",".join(unarchivedLivePvs))
+        logger.info("Submitting these PVs to the archiver %s", ",".join(unarchivedLivePvs))
         unarchivedPVsConfig = [ batchedPVConfig[x] for x in unarchivedLivePvs ]
         archivePVs(url, unarchivedPVsConfig)
         expandedNames.update(unarchivedLivePvs)
