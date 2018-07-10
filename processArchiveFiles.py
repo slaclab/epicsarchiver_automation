@@ -33,7 +33,7 @@ def getAllExpandedNames(bplURL):
     expandedNames = set()
     expandedNames.update(json.loads(the_page))
     return expandedNames
-    
+
 
 def getUnarchivedPVs(bplURL, pvNames):
     '''Use the archivers unarchivedPVs call to determine those PVs that need processing.'''
@@ -56,27 +56,22 @@ def archivePVs(bplURL, pvConfigs):
     except Exception as e:
         logger.error("Exception submitting PVs to the archiver. Perhaps we have some invalid characters in the PV names")
 
-def findChangedFiles(args):
-    ''' Find all the archive files that have changed. We determine this by saving off a cached copy and then comparing the file the next time around'''
-    dataFolder = args.dataFolder
-    if not os.path.exists(dataFolder):
-        raise Exception("Datafolder {} does not exists".format(dataFolder))
-    rootFolder = args.rootFolder
+def findChangedFiles(rootFolder, ignoreolder):
+    ''' Find all the archive files that have changed. We determine this by checking the file's last modified timestamp.'''
 
     changedfiles = []
     files = subprocess.check_output("shopt -s globstar && cd " + args.rootFolder + " && ls -1 " + args.filenamepattern, shell=True).split()
+    now = datetime.datetime.now()
     for fname in files:
         absoluteFName = os.path.join(rootFolder, fname)
-        cachedArchiveFileName = os.path.join(dataFolder, fname)
-        logger.debug("Cached file name %s", cachedArchiveFileName)
-        if os.path.exists(cachedArchiveFileName) and abs((datetime.datetime.fromtimestamp(os.path.getmtime(absoluteFName)) - datetime.datetime.fromtimestamp(os.path.getmtime(cachedArchiveFileName))).total_seconds()) < 2:
-            logger.debug("File %s has not changed", fname)
+        if abs((now - datetime.datetime.fromtimestamp(os.path.getmtime(absoluteFName))).total_seconds()) > ignoreolder*86400:
+            logger.info("Ignoring file %s older than %s days", absoluteFName, ignoreolder)
         else:
             changedfiles.append(fname)
 
     return changedfiles
-            
-        
+
+
 
 def checkForLivenessAndSubmitToArchiver(args, expandedNames, batchedPVConfig):
     '''Check for liveness of PV and submit those PV's that are live to the archiver'''
@@ -97,12 +92,9 @@ def checkForLivenessAndSubmitToArchiver(args, expandedNames, batchedPVConfig):
 
 def processFile(fname, args, expandedNames, batchedPVConfig):
     ''' Process the archive request file f and submit unarchived PV's to the archiver'''
-    dataFolder = args.dataFolder
     rootFolder = args.rootFolder
     absoluteFName = os.path.join(rootFolder, fname)
-    cachedArchiveFileName = os.path.join(dataFolder, fname)
-   
-    logger.debug("Processing file %s", absoluteFName) 
+    logger.debug("Processing file %s", absoluteFName)
 
     with open(absoluteFName, 'r') as f:
         lines = f.readlines()
@@ -118,12 +110,6 @@ def processFile(fname, args, expandedNames, batchedPVConfig):
             checkForLivenessAndSubmitToArchiver(args, expandedNames, batchedPVConfig)
     else:
         logger.debug("All %s PVs from %s are in the archiver", len(pvNames), fname)
-    
-    if not os.path.exists(os.path.dirname(cachedArchiveFileName)):
-        os.makedirs(os.path.dirname(cachedArchiveFileName))
-    if os.path.exists(cachedArchiveFileName):
-        os.remove(cachedArchiveFileName)
-    shutil.copy2(absoluteFName, cachedArchiveFileName)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
@@ -135,9 +121,9 @@ if __name__ == "__main__":
     parser.add_argument('-b', "--batchsize", default=1000, type=int,  help="Batch size for submitting PV's to the archiver")
     parser.add_argument('-m', "--defaultSamplingMethod", default="monitor", help="If the IOC engr has not specified a sampling method, use this as the sampling method", choices=['MONITOR', 'SCAN'])
     parser.add_argument('-p', "--defaultSamplingPeriod", default=1, help="If the IOC engineer has not specified a sampling period, use this as the sampling period", type=int)
+    parser.add_argument('-i', "--ignoreolder", default="30", help="Ignore archive files whose last modified date is older than this many days.", type=int)
     parser.add_argument('-t', "--timeout", default="5", help="Specify the timeout to wait for all the PV's to connect")
     parser.add_argument("url", help="This is the URL to the mgmt bpl interface of the appliance cluster. For example, http://arch.slac.stanford.edu/mgmt/bpl")
-    parser.add_argument("dataFolder", help="Folder where we cache the archive files; we compare the new version against the cached copy to determine changes.")
     parser.add_argument("rootFolder", help="The root folder of all the IOC archive request files")
     parser.add_argument("filenamepattern", help="The extended shell matching pattern used to determine archive request files, for example, */archive/*.archive", default="*/archive/*.archive")
 
@@ -145,7 +131,7 @@ if __name__ == "__main__":
     if args.verbose:
         logger.setLevel(logging.DEBUG)
 
-    files = findChangedFiles(args)
+    files = findChangedFiles(args.rootFolder, args.ignoreolder)
     batchedPVConfig = {}
     if files:
         expandedNames = getAllExpandedNames(args.url)
@@ -155,4 +141,3 @@ if __name__ == "__main__":
             except Exception as ex:
                 logger.exception("Exception processing {}".format(f))
         checkForLivenessAndSubmitToArchiver(args, expandedNames, batchedPVConfig)
-
