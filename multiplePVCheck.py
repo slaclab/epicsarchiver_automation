@@ -26,7 +26,7 @@ if __name__ == "__main__":
     parser.add_argument('-c', "--connectedonly", action='store_true', help="Print only the connected PV's")
     parser.add_argument('-u', "--unconnectedonly", action='store_true', help="Print only the unconnected PV's")
     parser.add_argument("filename", help="The name of the file comtaining a list of PV's - one PV per line")
-    
+
     args = parser.parse_args()
 
     pvs = []
@@ -38,7 +38,7 @@ if __name__ == "__main__":
     else:
         for line in fileinput.input():
             pvs.append(line.strip())
-        
+
 
     timeout = 5
     if 'timeout' in args:
@@ -49,14 +49,14 @@ if __name__ == "__main__":
     if args.connectedonly:
         for pv in pvs:
             if pv in connectedPVs:
-                print pv
+                print(pv)
     elif args.unconnectedonly:
         for pv in pvs:
             if pv not in connectedPVs:
-                print pv
+                print(pv)
     else:
         for pv in pvs:
             if pv in connectedPVs:
-                print "Connected", pv
-	    else:
-	        print "Not connected", pv
+                print("Connected %s" % pv)
+            else:
+                print("Not connected %s" % pv)

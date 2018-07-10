@@ -18,51 +18,40 @@ import subprocess
 import shutil
 import datetime
 import shlex
-import urllib
-import urllib2
 import logging
 import multiplePVCheck
-
+import requests
 
 def getAllExpandedNames(bplURL):
     '''Get all expanded PV names (.VAL, .HIHI, aliases etc) from the archiver.'''
-    url = bplURL + '/getAllExpandedPVNames'
-    req = urllib2.Request(url)
-    response = urllib2.urlopen(req)
-    the_page = response.read()
     expandedNames = set()
-    expandedNames.update(json.loads(the_page))
+    url = bplURL + '/getAllExpandedPVNames'
+    expandedNames.update(requests.get(url).json())
     return expandedNames
 
 
 def getUnarchivedPVs(bplURL, pvNames):
     '''Use the archivers unarchivedPVs call to determine those PVs that need processing.'''
     url = bplURL + '/unarchivedPVs'
-    req = urllib2.Request(url, json.dumps(pvNames), {'Content-Type': 'application/json'})
-    response = urllib2.urlopen(req)
-    the_page = response.read()
-    unarchivedPVs = json.loads(the_page)
+    unarchivedPVs = requests.post(url, json=pvNames).json()
     return unarchivedPVs
 
 def archivePVs(bplURL, pvConfigs):
     '''Submit unarchived PVs to the archiver using archivePV's and a JSON batch submit'''
     try:
         url = bplURL + '/archivePV'
-        req = urllib2.Request(url, json.dumps(pvConfigs), {'Content-Type': 'application/json'})
-        response = urllib2.urlopen(req)
-        the_page = response.read()
-        submittedPVs = json.loads(the_page)
+        submittedPVs = requests.post(url, json=pvConfigs).json()
         return submittedPVs
     except Exception as e:
         logger.error("Exception submitting PVs to the archiver. Perhaps we have some invalid characters in the PV names")
 
 def findChangedFiles(rootFolder, ignoreolder):
     ''' Find all the archive files that have changed. We determine this by checking the file's last modified timestamp.'''
-
     changedfiles = []
     files = subprocess.check_output("shopt -s globstar && cd " + args.rootFolder + " && ls -1 " + args.filenamepattern, shell=True).split()
     now = datetime.datetime.now()
     for fname in files:
+        fname = fname.decode("utf-8")
         absoluteFName = os.path.join(rootFolder, fname)
         if abs((now - datetime.datetime.fromtimestamp(os.path.getmtime(absoluteFName))).total_seconds()) > ignoreolder*86400:
             logger.info("Ignoring file %s older than %s days", absoluteFName, ignoreolder)
@@ -70,8 +59,6 @@ def findChangedFiles(rootFolder, ignoreolder):
             changedfiles.append(fname)
 
     return changedfiles
-
-
 
 def checkForLivenessAndSubmitToArchiver(args, expandedNames, batchedPVConfig):
     '''Check for liveness of PV and submit those PV's that are live to the archiver'''
@@ -102,7 +89,7 @@ def processFile(fname, args, expandedNames, batchedPVConfig):
     pvConfigEntries = [shlex.split(x) for x in filter(lambda x : x.strip() and not x.startswith("#"), lines)]
     pvNames = set()
     pvNames.update([x[0] for x in pvConfigEntries])
-    pvName2Config = { x[0] : { 'pv': x[0], 'samplingperiod': x[1] if len(x) > 1 else args.defaultSamplingPeriod, 'samplingmethod' : x[2].upper() if len(x) > 2 else args.defaultSamplingMethod } for x in pvConfigEntries}
+    pvName2Config = { x[0] : { 'pv': x[0], 'samplingperiod': str(x[1]) if len(x) > 1 else str(args.defaultSamplingPeriod), 'samplingmethod' : x[2].upper() if len(x) > 2 else args.defaultSamplingMethod } for x in pvConfigEntries}
     unarchivedPVs = pvNames.difference(expandedNames)
     if unarchivedPVs:
         batchedPVConfig.update({ x : pvName2Config[x] for x in unarchivedPVs })
@@ -112,9 +99,14 @@ def processFile(fname, args, expandedNames, batchedPVConfig):
         logger.debug("All %s PVs from %s are in the archiver", len(pvNames), fname)
 
 if __name__ == "__main__":
+
     logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
+    requests_log = logging.getLogger("requests.packages.urllib3")
+    requests_log.setLevel(logging.DEBUG)
+    requests_log.propagate = True
+
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', "--verbose", action="store_true",  help="Turn on verbose logging")
@@ -129,7 +121,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     if args.verbose:
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.INFO)
+        #import http.client as http_client
+        #http_client.HTTPConnection.debuglevel = 1
+
 
     files = findChangedFiles(args.rootFolder, args.ignoreolder)
     batchedPVConfig = {}

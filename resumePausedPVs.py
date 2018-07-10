@@ -5,8 +5,7 @@ import os
 import sys
 import argparse
 import json
-import urllib
-import urllib2
+import requests
 import logging
 import multiplePVCheck
 
@@ -14,19 +13,13 @@ import multiplePVCheck
 def getCurrentlyPausedPVs(bplURL):
     '''Get a list of PVs that are currently disconnected'''
     url = bplURL + '/getPausedPVsReport'
-    req = urllib2.Request(url)
-    response = urllib2.urlopen(req)
-    the_page = response.read()
-    currentlyPausedPVs = json.loads(the_page)
+    currentlyPausedPVs = requests.get(url).json()
     return currentlyPausedPVs
 
 def resumePVs(bplURL, pvNames):
     '''Bulk resume PVs specified in the pvNames'''
     url = bplURL + '/resumeArchivingPV'
-    req = urllib2.Request(url, json.dumps(pvNames), {'Content-Type': 'application/json'})
-    response = urllib2.urlopen(req)
-    the_page = response.read()
-    resumeResponse = json.loads(the_page)
+    resumeResponse = requests.post(url, json=pvNames).json()
     return resumeResponse
 
 
@@ -38,11 +31,11 @@ def checkForLivenessAndResume(args, batch):
     livePVs = multiplePVCheck.checkMultiplePVs(batch, float(args.timeout))
     if livePVs:
         logger.info("Resuming %s live PVs", len(livePVs))
-        resumePVs(args.url, livePVs)
+        resumePVs(args.url, list(livePVs))
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
 
@@ -55,9 +48,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.verbose:
         logger.setLevel(logging.DEBUG)
+        #import http.client as http_client
+        #http_client.HTTPConnection.debuglevel = 1
 
     if not args.url.endswith('bpl'):
-        print "The URL needs to point to the mgmt bpl; for example, http://arch.slac.stanford.edu/mgmt/bpl. ", args.url
+        logger.error("The URL %s needs to point to the mgmt bpl; for example, http://arch.slac.stanford.edu/mgmt/bpl. ", args.url)
         sys.exit(1)
     pvList = getCurrentlyPausedPVs(args.url)
     if not pvList:
@@ -68,8 +63,7 @@ if __name__ == "__main__":
     pvNames = [ x['pvName'] for x in pvList ]
     def breakIntoBatches(l, n):
         '''Check for liveness and resume in batches specified by the batch size'''
-        for i in xrange(0, len(l), n):
+        for i in range(0, len(l), n):
             yield l[i:i + n]
     for batch in breakIntoBatches(pvNames, args.batchsize):
         checkForLivenessAndResume(args, batch)
-        
