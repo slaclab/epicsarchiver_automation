@@ -10,6 +10,9 @@ import requests
 import logging
 import multiplePVCheck
 
+from utils import configureLogging
+
+logger = logging.getLogger(__name__)
 
 def getCurrentlyDisconnectedPVs(bplURL):
     '''Get a list of PVs that are currently disconnected'''
@@ -37,10 +40,6 @@ def checkForLivenessAndPause(args, batch):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
-
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', "--verbose", action="store_true",  help="Turn on verbose logging")
     parser.add_argument('-b', "--batchsize", default=1000, type=int,  help="Batch size for submitting PV's to the archiver")
@@ -49,10 +48,7 @@ if __name__ == "__main__":
     parser.add_argument("disconnTimeout", help="Pause those PV's that have not connected for this amount of time (in minutes")
 
     args = parser.parse_args()
-    if args.verbose:
-        logger.setLevel(logging.DEBUG)
-        #import http.client as http_client
-        #http_client.HTTPConnection.debuglevel = 1
+    configureLogging(args.verbose)
 
     if not args.url.endswith('bpl'):
         logger.error("The URL %s needs to point to the mgmt bpl; for example, http://arch.slac.stanford.edu/mgmt/bpl", args.url)

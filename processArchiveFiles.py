@@ -22,6 +22,11 @@ import logging
 import multiplePVCheck
 import requests
 
+from utils import configureLogging
+
+logger = logging.getLogger(__name__)
+
+
 def getAllExpandedNames(bplURL):
     '''Get all expanded PV names (.VAL, .HIHI, aliases etc) from the archiver.'''
     expandedNames = set()
@@ -45,10 +50,10 @@ def archivePVs(bplURL, pvConfigs):
     except Exception as e:
         logger.error("Exception submitting PVs to the archiver. Perhaps we have some invalid characters in the PV names")
 
-def findChangedFiles(rootFolder, ignoreolder):
+def findChangedFiles(rootFolder, filenamepattern, ignoreolder):
     ''' Find all the archive files that have changed. We determine this by checking the file's last modified timestamp.'''
     changedfiles = []
-    files = subprocess.check_output("shopt -s globstar && cd " + args.rootFolder + " && ls -1 " + args.filenamepattern, shell=True).split()
+    files = subprocess.check_output("shopt -s globstar && cd " + rootFolder + " && ls -1 " + filenamepattern, shell=True).split()
     now = datetime.datetime.now()
     for fname in files:
         fname = fname.decode("utf-8")
@@ -100,15 +105,6 @@ def processFile(fname, args, expandedNames, batchedPVConfig):
         logger.debug("All %s PVs from %s are in the archiver", len(pvNames), fname)
 
 if __name__ == "__main__":
-
-    logging.basicConfig(level=logging.DEBUG)
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
-    requests_log = logging.getLogger("requests.packages.urllib3")
-    requests_log.setLevel(logging.DEBUG)
-    requests_log.propagate = True
-
-
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', "--verbose", action="store_true",  help="Turn on verbose logging")
     parser.add_argument('-b', "--batchsize", default=1000, type=int,  help="Batch size for submitting PV's to the archiver")
@@ -121,13 +117,9 @@ if __name__ == "__main__":
     parser.add_argument("filenamepattern", help="The extended shell matching pattern used to determine archive request files, for example, */archive/*.archive", default="*/archive/*.archive")
 
     args = parser.parse_args()
-    if args.verbose:
-        logger.setLevel(logging.INFO)
-        #import http.client as http_client
-        #http_client.HTTPConnection.debuglevel = 1
+    configureLogging(args.verbose)
 
-
-    files = findChangedFiles(args.rootFolder, args.ignoreolder)
+    files = findChangedFiles(args.rootFolder, args.filenamepattern, args.ignoreolder)
     batchedPVConfig = {}
     if files:
         expandedNames = getAllExpandedNames(args.url)
