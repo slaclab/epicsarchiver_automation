@@ -32,7 +32,7 @@ def resumePVs(bplURL, pvNames):
     resumeResponse = requests.post(url, json=pvNames).json()
     return resumeResponse
 
-def getPVsFromRecentlyChangdArchiveFiles(rootFolder, filenamepattern, ignoreolder):
+def getPVsFromRecentlyChangedArchiveFiles(rootFolder, filenamepattern, ignoreolder):
     changedFiles = findChangedFiles(rootFolder, filenamepattern, ignoreolder)
     recentlyChangedPVs = set()
     for changedFile in changedFiles:
@@ -84,7 +84,7 @@ if __name__ == "__main__":
 
     if args.rootFolder and args.filenamepattern:
         pvNames = set([ x['pvName'] for x in pausedPVs ])
-        recentlyChangedPVs = getPVsFromRecentlyChangdArchiveFiles(args.rootFolder, args.filenamepattern, args.ignoreolder)
+        recentlyChangedPVs = getPVsFromRecentlyChangedArchiveFiles(args.rootFolder, args.filenamepattern, args.ignoreolder)
         pvNames = pvNames.intersection(recentlyChangedPVs)
         logger.info("%s recently changed PVs are paused", len(pvNames))
         pvList = list(pvNames)
