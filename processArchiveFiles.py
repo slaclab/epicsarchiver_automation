@@ -55,15 +55,17 @@ def findChangedFiles(rootFolder, filenamepattern, ignoreolder):
     changedfiles = []
     files = subprocess.check_output("shopt -s globstar && cd " + rootFolder + " && ls -1 " + filenamepattern, shell=True).split()
     now = datetime.datetime.now()
+    nIgnoredFiles = 0
     for fname in files:
         fname = fname.decode("utf-8")
         absoluteFName = os.path.join(rootFolder, fname)
         if abs((now - datetime.datetime.fromtimestamp(os.path.getmtime(absoluteFName))).total_seconds()) > ignoreolder*86400:
-            logger.debug("Ignoring file %s older than %s days", absoluteFName, ignoreolder)
+            nIgnoredFiles = nIgnoredFiles + 1
         else:
             logger.info("Adding file %s that has been modified in less than %s days", absoluteFName, ignoreolder)
             changedfiles.append(fname)
 
+    logger.debug("Ignored %d files older than %s days", nIgnoredFiles, ignoreolder)
     return changedfiles
 
 def checkForLivenessAndSubmitToArchiver(args, expandedNames, batchedPVConfig):
