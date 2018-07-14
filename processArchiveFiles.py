@@ -62,7 +62,7 @@ def findChangedFiles(rootFolder, filenamepattern, ignoreolder):
         if abs((now - datetime.datetime.fromtimestamp(os.path.getmtime(absoluteFName))).total_seconds()) > ignoreolder*86400:
             nIgnoredFiles = nIgnoredFiles + 1
         else:
-            logger.info("Adding file %s that has been modified in less than %s days", absoluteFName, ignoreolder)
+            logger.debug("Adding file %s that has been modified in less than %s days", absoluteFName, ignoreolder)
             changedfiles.append(fname)
 
     logger.debug("Ignored %d files older than %s days", nIgnoredFiles, ignoreolder)
@@ -89,7 +89,7 @@ def processFile(fname, args, expandedNames, batchedPVConfig):
     ''' Process the archive request file f and submit unarchived PV's to the archiver'''
     rootFolder = args.rootFolder
     absoluteFName = os.path.join(rootFolder, fname)
-    logger.debug("Processing file %s", absoluteFName)
+    logger.info("Processing file %s", absoluteFName)
 
     with open(absoluteFName, 'r') as f:
         lines = f.readlines()

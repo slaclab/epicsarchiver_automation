@@ -37,7 +37,7 @@ def getPVsFromRecentlyChangdArchiveFiles(rootFolder, filenamepattern, ignoreolde
     recentlyChangedPVs = set()
     for changedFile in changedFiles:
         lastModifiedTS = datetime.datetime.fromtimestamp(os.path.getmtime(os.path.join(rootFolder, changedFile)))
-        logger.debug("Processing file %s", changedFile)
+        logger.info("Processing recently changed file %s", changedFile)
 
         with open(os.path.join(rootFolder, changedFile), 'r') as f:
             lines = f.readlines()
