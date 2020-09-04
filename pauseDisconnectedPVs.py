@@ -31,9 +31,13 @@ def checkForLivenessAndPause(args, batch):
     '''Check for liveness of PV's and then bulk pause those that have not yet connected'''
     if not batch:
         return
-    logger.debug("Checking for liveness of %s PVs", len(batch))
-    livePVs = multiplePVCheck.checkMultiplePVs(batch, float(args.timeout))
-    disConnPVs = list(set(batch) - set(livePVs))
+    if args.skiplivenesscheck:
+        logger.info("Skipping the liveness check for PVs")
+        disConnPVs = batch
+    else:
+        logger.debug("Checking for liveness of %s PVs", len(batch))
+        livePVs = multiplePVCheck.checkMultiplePVs(batch, float(args.timeout))
+        disConnPVs = list(set(batch) - set(livePVs))
     if disConnPVs:
         logger.info("Detected %s disconnected PVs", len(disConnPVs))
         pausePVs(args.url, disConnPVs)
@@ -44,6 +48,7 @@ if __name__ == "__main__":
     parser.add_argument('-v', "--verbose", action="store_true",  help="Turn on verbose logging")
     parser.add_argument('-b', "--batchsize", default=1000, type=int,  help="Batch size for submitting PV's to the archiver")
     parser.add_argument('-t', "--timeout", default="5", help="Specify the timeout to wait for all the PV's to connect")
+    parser.add_argument('-k', "--skiplivenesscheck", action="store_true", help="Specify the liveness check for pausing PV's")
     parser.add_argument("url", help="This is the URL to the mgmt bpl interface of the appliance cluster. For example, http://arch.slac.stanford.edu/mgmt/bpl")
     parser.add_argument("disconnTimeout", help="Pause those PV's that have not connected for this amount of time (in minutes")
 
